@@ -1,0 +1,22 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:ms-todo-cli}",
+      "name": "Debug MicrosoftTodoCli",
+      "program": "${workspaceFolder:ms-todo-cli}/.build/debug/MicrosoftTodoCli",
+      "preLaunchTask": "swift: Build Debug MicrosoftTodoCli"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:ms-todo-cli}",
+      "name": "Release MicrosoftTodoCli",
+      "program": "${workspaceFolder:ms-todo-cli}/.build/release/MicrosoftTodoCli",
+      "preLaunchTask": "swift: Build Release MicrosoftTodoCli"
+    }
+  ]
+}
