@@ -7,6 +7,7 @@ let package = Package(
     platforms: [.macOS(.v13)],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
+        .package(url: "https://github.com/thebarndog/swift-dotenv.git", from: "2.1.0"),
     ],
     targets: [
         .target(
@@ -18,12 +19,15 @@ let package = Package(
             dependencies: ["TodoCommon"],
             swiftSettings: [.defaultIsolation(MainActor.self)],
         ),
-        
         .executableTarget(
-            name: "MicrosoftTodoCli",
+            name: "TodoCli",
             dependencies: [
-                .product(name: "ArgumentParser", package: "swift-argument-parser")
-            ]
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "SwiftDotenv", package: "swift-dotenv"),
+                "TodoCommon", "TodoAuth",
+            ],
+            resources: [.copy(".env")],
+            swiftSettings: [.defaultIsolation(MainActor.self)],
         ),
     ]
 )

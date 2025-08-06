@@ -5,18 +5,18 @@
       "request": "launch",
       "args": [],
       "cwd": "${workspaceFolder:ms-todo-cli}",
-      "name": "Debug MicrosoftTodoCli",
-      "program": "${workspaceFolder:ms-todo-cli}/.build/debug/MicrosoftTodoCli",
-      "preLaunchTask": "swift: Build Debug MicrosoftTodoCli"
+      "name": "Debug TodoCli",
+      "program": "${workspaceFolder:ms-todo-cli}/.build/debug/TodoCli",
+      "preLaunchTask": "swift: Build Debug TodoCli"
     },
     {
       "type": "swift",
       "request": "launch",
       "args": [],
       "cwd": "${workspaceFolder:ms-todo-cli}",
-      "name": "Release MicrosoftTodoCli",
-      "program": "${workspaceFolder:ms-todo-cli}/.build/release/MicrosoftTodoCli",
-      "preLaunchTask": "swift: Build Release MicrosoftTodoCli"
+      "name": "Release TodoCli",
+      "program": "${workspaceFolder:ms-todo-cli}/.build/release/TodoCli",
+      "preLaunchTask": "swift: Build Release TodoCli"
     }
   ]
 }
