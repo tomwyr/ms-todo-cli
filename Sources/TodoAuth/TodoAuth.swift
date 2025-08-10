@@ -1,8 +1,8 @@
 import Combine
 import Observation
 
-public class AuthService {
-  public init(authClient: AuthClient, authStorage: AuthStorage) {
+public class TodoAuth {
+  init(authClient: AuthClient, authStorage: AuthStorage) {
     self.authClient = authClient
     self.authStorage = authStorage
   }
@@ -10,21 +10,11 @@ public class AuthService {
   let authClient: AuthClient
   let authStorage: AuthStorage
 
-  @Published private(set) var state: AuthState = .unknown
+  private var state: AuthState = .unknown
 
-  func initialize() async throws {
-    guard case .unknown = state else { return }
+  public func authenticate() async throws {
+    try await initialize()
 
-    let cachedSession = try await authStorage.loadSession()
-    state =
-      if let cachedSession {
-        .authenticated(cachedSession)
-      } else {
-        .unauthenticated
-      }
-  }
-
-  func authenticate() async throws {
     guard case .unauthenticated = state else { return }
 
     let authorization = try await authClient.authorizeDevice()
@@ -37,7 +27,9 @@ public class AuthService {
     state = .authenticated(session)
   }
 
-  func invalidateSession() async throws {
+  public func logOut() async throws {
+    try await initialize()
+
     switch state {
     case .authenticated: break
     case .pending(_, let pollTask):
@@ -49,7 +41,17 @@ public class AuthService {
     state = .unauthenticated
   }
 
-  private nonisolated func pollToken(
+  public func status() async throws -> Bool {
+    try await initialize()
+
+    return switch state {
+    case .unknown: failUninitialized()
+    case .pending, .unauthenticated: false
+    case .authenticated: true
+    }
+  }
+
+  private func pollToken(
     _ authorization: DeviceAuthorization,
   ) async throws -> UserSession {
     while authorization.expiresIn > 0 {
@@ -59,6 +61,22 @@ public class AuthService {
       return session
     }
     fatalError("TODO")
+  }
+
+  private func initialize() async throws {
+    guard case .unknown = state else { return }
+
+    let cachedSession = try await authStorage.loadSession()
+    state =
+      if let cachedSession {
+        .authenticated(cachedSession)
+      } else {
+        .unauthenticated
+      }
+  }
+
+  private func failUninitialized() -> Never {
+    fatalError("TodoAuth state not initialized.")
   }
 }
 

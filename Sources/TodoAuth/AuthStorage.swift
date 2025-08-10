@@ -1,6 +1,4 @@
-public struct AuthStorage {
-  public init() {}
-
+struct AuthStorage {
   func saveSession(_ userSession: UserSession) async throws {
     fatalError("TODO")
   }

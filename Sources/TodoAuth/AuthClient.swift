@@ -1,7 +1,7 @@
 import TodoCommon
 
-public class AuthClient {
-  public init(clientId: String, httpClient: HttpClient) {
+class AuthClient {
+  init(clientId: String, httpClient: HttpClient) {
     self.clientId = clientId
     self.httpClient = httpClient
   }
