@@ -8,6 +8,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
         .package(url: "https://github.com/thebarndog/swift-dotenv.git", from: "2.1.0"),
+        .package(url: "https://github.com/apple/swift-crypto.git", from: "3.14.0"),
     ],
     targets: [
         .target(
@@ -16,15 +17,18 @@ let package = Package(
         ),
         .target(
             name: "TodoAuth",
-            dependencies: ["TodoCommon"],
+            dependencies: [
+                "TodoCommon",
+                .product(name: "Crypto", package: "swift-crypto"),
+            ],
             swiftSettings: [.defaultIsolation(MainActor.self)],
         ),
         .executableTarget(
             name: "TodoCli",
             dependencies: [
+                "TodoCommon", "TodoAuth",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "SwiftDotenv", package: "swift-dotenv"),
-                "TodoCommon", "TodoAuth",
             ],
             resources: [.copy(".env")],
             swiftSettings: [.defaultIsolation(MainActor.self)],
