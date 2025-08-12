@@ -20,3 +20,5 @@ class TodoClient {
     }
   }
 }
+
+private let baseUrl = "https://graph.microsoft.com/v1.0"
