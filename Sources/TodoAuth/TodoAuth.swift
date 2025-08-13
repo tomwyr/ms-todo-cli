@@ -7,17 +7,21 @@ public class TodoAuth {
   let authClient: AuthApiClient
   let authStorage: AuthStorage
 
-  public func authenticate() async throws -> UserProfile {
+  public func authenticate(
+    onVerificationStatus: sending @MainActor (AuthVerificationStatus) -> Void,
+  ) async throws -> UserProfile {
     if let credentials = try authStorage.loadSession() {
       return try credentials.decodeUser()
     }
 
     let authorization = try await authClient.authorizeDevice()
-    print(authorization)
+    onVerificationStatus(.pending(authorization.message))
+
     let pollTask = Task.detached {
       try await self.pollToken(authorization)
     }
     let credentials = try await pollTask.value
+    onVerificationStatus(.complete)
 
     try authStorage.saveSession(credentials)
     return try credentials.decodeUser()
@@ -57,6 +61,11 @@ extension AuthCredentials {
   func decodeUser() throws -> UserProfile {
     try parseJwtPayload(token: idToken, keyStrategy: .convertFromSnakeCase)
   }
+}
+
+public enum AuthVerificationStatus {
+  case pending(String)
+  case complete
 }
 
 public enum AuthStatus {

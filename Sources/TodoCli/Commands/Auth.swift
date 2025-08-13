@@ -21,6 +21,7 @@ struct Auth: AsyncParsableCommand {
       switch status {
       case .unauthenticated:
         log(.statusLoggedOut)
+
       case .authenticated(let profile):
         log(.statusLoggedIn(profile))
       }
@@ -41,9 +42,18 @@ struct Auth: AsyncParsableCommand {
       switch status {
       case .authenticated(let profile):
         log(.loginSkipping(profile))
+
       case .unauthenticated:
         log(.loginInProgress)
-        let profile = try await auth.authenticate()
+        let profile = try await auth.authenticate { verificationStatus in
+          switch verificationStatus {
+          case .pending(let message):
+            log(.loginVerificationPending)
+            log(message)
+          case .complete:
+            log(.loginVerificationComplete)
+          }
+        }
         log(.loginSuccess(profile))
       }
     }
@@ -63,6 +73,7 @@ struct Auth: AsyncParsableCommand {
       switch status {
       case .unauthenticated:
         log(.logoutSkipping)
+
       case .authenticated:
         log(.logoutInProgress)
         try await auth.invalidateSession()
