@@ -13,14 +13,16 @@ struct Auth: AsyncParsableCommand {
     @MainActor
     func run() async throws {
       try configure()
-      let status = try await TodoAuth().getCurrentStatus()
+      let auth = TodoAuth()
 
-      print("Checking authentication status...")
+      log(.checkingStatus)
+      let status = try await auth.getCurrentStatus()
+
       switch status {
       case .unauthenticated:
-        print("Not logged in")
-      case .authenticated(let userProfile):
-        print("Logged in as \(userProfile.displayName)")
+        log(.statusLoggedOut)
+      case .authenticated(let profile):
+        log(.statusLoggedIn(profile))
       }
     }
   }
@@ -31,18 +33,18 @@ struct Auth: AsyncParsableCommand {
     @MainActor
     func run() async throws {
       try configure()
-      let todoAuth = TodoAuth()
+      let auth = TodoAuth()
 
-      print("Checking authentication status...")
-      let status = try await todoAuth.getCurrentStatus()
+      log(.checkingStatus)
+      let status = try await auth.getCurrentStatus()
 
       switch status {
+      case .authenticated(let profile):
+        log(.loginSkipping(profile))
       case .unauthenticated:
-        print("Logging in...")
-        let userProfile = try await todoAuth.authenticate()
-        print("Successfully logged in as \(userProfile.displayName)")
-      case .authenticated(let userProfile):
-        print("Already logged in as \(userProfile.displayName)")
+        log(.loginInProgress)
+        let profile = try await auth.authenticate()
+        log(.loginSuccess(profile))
       }
     }
   }
@@ -53,18 +55,18 @@ struct Auth: AsyncParsableCommand {
     @MainActor
     func run() async throws {
       try configure()
-      let todoAuth = TodoAuth()
+      let auth = TodoAuth()
 
-      print("Checking authentication status...")
-      let status = try await todoAuth.getCurrentStatus()
+      log(.checkingStatus)
+      let status = try await auth.getCurrentStatus()
 
       switch status {
       case .unauthenticated:
-        print("Currently not logged in")
+        log(.logoutSkipping)
       case .authenticated:
-        print("Logging out...")
-        try await todoAuth.invalidateSession()
-        print("Successfully logged out")
+        log(.logoutInProgress)
+        try await auth.invalidateSession()
+        log(.logoutSuccess)
       }
     }
   }
