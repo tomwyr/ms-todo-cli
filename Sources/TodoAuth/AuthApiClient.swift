@@ -1,6 +1,7 @@
+import Foundation
 import TodoCommon
 
-class AuthClient {
+class AuthApiClient {
   init(clientId: String, httpClient: HttpClient) {
     self.clientId = clientId
     self.httpClient = httpClient
@@ -10,25 +11,21 @@ class AuthClient {
   let httpClient: HttpClient
 
   func authorizeDevice() async throws -> DeviceAuthorization {
-    let (data, response) = try await httpClient.request(
+    let result = try await httpClient.request(
       url: "/devicecode",
       method: "POST",
       headers: ["Content-Type": "application/x-www-form-urlencoded"],
       body: [
-        "clientId": clientId,
+        "client_id": clientId,
         "scope": "user.read%20openid%20profile%20offline_access",
       ],
     )
 
-    return if response.isSuccessful {
-      try data.jsonDecoded()
-    } else {
-      fatalError("TODO")
-    }
+    return try parseResult(result)
   }
 
-  func authenticate(deviceCode: String) async throws -> UserSession {
-    let (data, response) = try await httpClient.request(
+  func authenticate(deviceCode: String) async throws -> AuthCredentials {
+    let result = try await httpClient.request(
       url: "/token",
       method: "POST",
       headers: ["Content-Type": "application/x-www-form-urlencoded"],
@@ -39,11 +36,27 @@ class AuthClient {
       ]
     )
 
-    return if response.isSuccessful {
-      try data.jsonDecoded()
+    return try parseResult(result)
+  }
+
+  private func parseResult<T>(
+    _ result: (Data, HTTPURLResponse),
+    into: T.Type = T.self,
+  ) throws -> T where T: Codable {
+    let (data, response) = result
+    if response.isSuccessful {
+      return try data.jsonDecoded(keyStrategy: .convertFromSnakeCase)
     } else {
-      fatalError("TODO")
+      throw try data.jsonDecoded(into: AuthApiError.self, keyStrategy: .convertFromSnakeCase)
     }
+  }
+}
+
+struct AuthApiError: Error, Codable {
+  let error: String
+
+  var isAuthorizationPending: Bool {
+    error == "authorization_pending"
   }
 }
 
@@ -56,8 +69,9 @@ struct DeviceAuthorization: Codable {
   let message: String
 }
 
-struct UserSession: Codable {
+struct AuthCredentials: Codable {
   let expiresIn: Int
+  let idToken: String
   let accessToken: String
   let refreshToken: String
 }

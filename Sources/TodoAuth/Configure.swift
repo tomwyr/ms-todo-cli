@@ -24,7 +24,7 @@ extension TodoAuth {
     }
 
     self.init(
-      authClient: AuthClient(
+      authClient: AuthApiClient(
         clientId: config.appClientId,
         httpClient: HttpClient(baseUrl: config.oauthApiUrl),
       ),

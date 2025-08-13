@@ -1,80 +1,56 @@
 import Combine
+import Foundation
+import JWTKit
 import Observation
 
 public class TodoAuth {
-  init(authClient: AuthClient, authStorage: AuthStorage) {
+  init(authClient: AuthApiClient, authStorage: AuthStorage) {
     self.authClient = authClient
     self.authStorage = authStorage
   }
 
-  let authClient: AuthClient
+  let authClient: AuthApiClient
   let authStorage: AuthStorage
 
-  private var state: AuthState = .unknown
-
-  public func authenticate() async throws {
-    try initialize()
-
-    guard case .unauthenticated = state else { return }
+  public func authenticate() async throws -> UserProfile {
+    if let credentials = try authStorage.loadSession() {
+      return try credentials.decodeUser()
+    }
 
     let authorization = try await authClient.authorizeDevice()
-
+    print(authorization)
     let pollTask = Task.detached {
       try await self.pollToken(authorization)
     }
-    state = .pending(authorization, pollTask)
+    let credentials = try await pollTask.value
 
-    let session = try await pollTask.value
-    try authStorage.saveSession(session)
-    state = .authenticated(session)
+    try authStorage.saveSession(credentials)
+    return try credentials.decodeUser()
   }
 
   public func invalidateSession() async throws {
-    try initialize()
-
-    switch state {
-    case .authenticated: break
-    case .pending(_, let pollTask):
-      pollTask.cancel()
-    default: return
-    }
-
     try authStorage.clearSession()
-    state = .unauthenticated
   }
 
-  public func isAuthenticated() async throws -> Bool {
-    try initialize()
-
-    return switch state {
-    case .unknown: failUninitialized()
-    case .pending, .unauthenticated: false
-    case .authenticated: true
+  public func getCurrentStatus() async throws -> AuthStatus {
+    let credentials = try authStorage.loadSession()
+    return if let credentials {
+      .authenticated(try credentials.decodeUser())
+    } else {
+      .unauthenticated
     }
   }
 
-  private func pollToken(
-    _ authorization: DeviceAuthorization,
-  ) async throws -> UserSession {
-    while authorization.expiresIn > 0 {
+  private func pollToken(_ authorization: DeviceAuthorization) async throws -> AuthCredentials {
+    while true {
       try await Task.sleep(for: .seconds(authorization.interval))
       try Task.checkCancellation()
-      let session = try await authClient.authenticate(deviceCode: authorization.deviceCode)
-      return session
-    }
-    fatalError("TODO")
-  }
-
-  private func initialize() throws {
-    guard case .unknown = state else { return }
-
-    let cachedSession = try authStorage.loadSession()
-    state =
-      if let cachedSession {
-        .authenticated(cachedSession)
-      } else {
-        .unauthenticated
+      do {
+        return try await authClient.authenticate(deviceCode: authorization.deviceCode)
+      } catch let error as AuthApiError where error.isAuthorizationPending {
+        continue
       }
+    }
   }
 
   private func failUninitialized() -> Never {
@@ -82,9 +58,22 @@ public class TodoAuth {
   }
 }
 
-enum AuthState {
-  case unknown
+extension AuthCredentials {
+  func decodeUser() throws -> UserProfile {
+    try parseJwtPayload(token: idToken, keyStrategy: .convertFromSnakeCase)
+  }
+}
+
+public enum AuthStatus {
+  case authenticated(UserProfile)
   case unauthenticated
-  case pending(DeviceAuthorization, Task<UserSession, Error>)
-  case authenticated(UserSession)
+}
+
+public struct UserProfile: Codable {
+  public let name: String
+  public let preferredUsername: String?
+
+  public var displayName: String {
+    preferredUsername ?? name
+  }
 }
