@@ -9,6 +9,7 @@ protocol TodoCommand {
 extension TodoCommand {
   func runDefault(body: () async throws -> Void) async throws {
     do {
+      try configure()
       try await body()
     } catch {
       log(.errorOccurred(verbose))
