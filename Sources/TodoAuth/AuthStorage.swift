@@ -6,7 +6,7 @@ struct AuthStorage {
 
   private let fm = FileManager.default
 
-  func saveSession(_ userSession: AuthCredentials) throws {
+  func saveSession(_ userSession: UserSession) throws {
     let encrpted = try valueCrypto.encrypt(value: userSession)
     if !fm.fileExists(atPath: filePath) {
       fm.createFile(atPath: filePath, contents: nil)
@@ -14,7 +14,7 @@ struct AuthStorage {
     try encrpted.write(toFile: filePath, atomically: true, encoding: .utf8)
   }
 
-  func loadSession() throws -> AuthCredentials? {
+  func loadSession() throws -> UserSession? {
     guard fm.fileExists(atPath: filePath) else {
       return nil
     }

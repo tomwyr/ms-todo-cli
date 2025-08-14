@@ -1,3 +1,5 @@
+import Foundation
+
 public class TodoAuth {
   init(authClient: AuthApiClient, authStorage: AuthStorage) {
     self.authClient = authClient
@@ -10,8 +12,8 @@ public class TodoAuth {
   public func authenticate(
     onVerificationStatus: sending @MainActor (AuthVerificationStatus) -> Void,
   ) async throws -> UserProfile {
-    if let credentials = try authStorage.loadSession() {
-      return try credentials.decodeUser()
+    if let session = try await restoreSession() {
+      return session.profile
     }
 
     let authorization = try await authClient.authorizeDevice()
@@ -23,7 +25,8 @@ public class TodoAuth {
     let credentials = try await pollTask.value
     onVerificationStatus(.complete)
 
-    try authStorage.saveSession(credentials)
+    let session = try UserSession(credentials: credentials)
+    try authStorage.saveSession(session)
     return try credentials.decodeUser()
   }
 
@@ -32,11 +35,24 @@ public class TodoAuth {
   }
 
   public func getCurrentStatus() async throws -> AuthStatus {
-    let credentials = try authStorage.loadSession()
-    return if let credentials {
-      .authenticated(try credentials.decodeUser())
+    if let session = try await restoreSession() {
+      .authenticated(session.profile)
     } else {
       .unauthenticated
+    }
+  }
+
+  private func restoreSession() async throws -> UserSession? {
+    switch try authStorage.loadSession() {
+    case nil:
+      return nil
+
+    case let session? where session.expiresAt < Date.now:
+      try authStorage.clearSession()
+      return nil
+
+    case let session:
+      return session
     }
   }
 
@@ -50,10 +66,6 @@ public class TodoAuth {
         continue
       }
     }
-  }
-
-  private func failUninitialized() -> Never {
-    fatalError("TodoAuth state not initialized.")
   }
 }
 
@@ -71,6 +83,18 @@ public enum AuthVerificationStatus {
 public enum AuthStatus {
   case authenticated(UserProfile)
   case unauthenticated
+}
+
+public struct UserSession: Codable {
+  let credentials: AuthCredentials
+  let profile: UserProfile
+  let expiresAt: Date
+
+  init(credentials: AuthCredentials) throws {
+    self.credentials = credentials
+    profile = try credentials.decodeUser()
+    expiresAt = Date.now.advanced(by: .init(credentials.expiresIn))
+  }
 }
 
 public struct UserProfile: Codable {
