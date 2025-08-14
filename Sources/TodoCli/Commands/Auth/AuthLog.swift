@@ -1,24 +1,5 @@
 import TodoAuth
 
-protocol AuthLogs {
-  func log(_ authLog: AuthLog)
-  func log(_ message: String)
-}
-
-extension AuthLogs {
-  func log(_ authLog: AuthLog) {
-    print(authLog.message)
-  }
-
-  func log(_ message: String) {
-    print(message)
-  }
-}
-
-extension Auth.Status: AuthLogs {}
-extension Auth.LogIn: AuthLogs {}
-extension Auth.LogOut: AuthLogs {}
-
 enum AuthLog {
   case checkingStatus
   case statusLoggedOut
