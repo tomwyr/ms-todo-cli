@@ -33,6 +33,16 @@ struct JsonCrypto: ValueCrypto {
   }
 }
 
-enum JsonCryptoError: Error {
-  case invalidEncryptData, invalidDecryptData
+enum JsonCryptoError: Error, CustomStringConvertible {
+  case invalidEncryptData
+  case invalidDecryptData
+
+  var description: String {
+    switch self {
+    case .invalidEncryptData:
+      "Invalid data provided for encryption"
+    case .invalidDecryptData:
+      "Invalid data provided for decryption"
+    }
+  }
 }

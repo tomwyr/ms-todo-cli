@@ -52,11 +52,15 @@ class AuthApiClient {
   }
 }
 
-struct AuthApiError: Error, Codable {
-  let error: String
+struct AuthApiError: Error, CustomStringConvertible, Codable {
+  let code: String
 
   var isAuthorizationPending: Bool {
-    error == "authorization_pending"
+    code == "authorization_pending"
+  }
+
+  var description: String {
+    "Auth API error: \(code)"
   }
 }
 

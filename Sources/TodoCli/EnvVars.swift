@@ -27,8 +27,19 @@ struct EnvVars {
   }
 }
 
-enum EnvVarsError: Error {
+enum EnvVarsError: Error, CustomStringConvertible {
   case notInitialized
   case fileMissing(name: String)
   case valueMissing(key: String)
+
+  var description: String {
+    switch self {
+    case .notInitialized:
+      "Environment variables are not initialized"
+    case .fileMissing(let name):
+      "Environment file '\(name)' is missing"
+    case .valueMissing(let key):
+      "Environment variable '\(key)' is missing"
+    }
+  }
 }

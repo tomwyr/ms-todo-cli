@@ -7,13 +7,13 @@ func parseJwtPayload<T: Codable>(
 ) throws -> T {
   let segments = token.split(separator: ".")
   guard segments.count == 3 else {
-    throw JwtPayloadError.invalidToken
+    throw JwtPayloadError.invalidTokenFormat
   }
   let payloadSegment = String(segments[1])
 
   let base64 = base64urlToBase64(base64url: payloadSegment)
   guard let data = Data(base64Encoded: base64) else {
-    throw JwtPayloadError.invalidData
+    throw JwtPayloadError.invalidTokenData
   }
 
   let decoder = JSONDecoder()
@@ -21,9 +21,18 @@ func parseJwtPayload<T: Codable>(
   return try decoder.decode(T.self, from: data)
 }
 
-enum JwtPayloadError: Error {
-  case invalidToken
-  case invalidData
+enum JwtPayloadError: Error, CustomStringConvertible {
+  case invalidTokenFormat
+  case invalidTokenData
+
+  var description: String {
+    switch self {
+    case .invalidTokenFormat:
+      "JWT token has an invalid format"
+    case .invalidTokenData:
+      "JWT token contains invalid data"
+    }
+  }
 }
 
 private func base64urlToBase64(base64url: String) -> String {
