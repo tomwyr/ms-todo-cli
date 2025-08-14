@@ -46,7 +46,7 @@ public class TodoAuth {
       try Task.checkCancellation()
       do {
         return try await authClient.authenticate(deviceCode: authorization.deviceCode)
-      } catch let error as AuthApiError where error.isAuthorizationPending {
+      } catch let error as OAuthError where error.isAuthorizationPending {
         continue
       }
     }

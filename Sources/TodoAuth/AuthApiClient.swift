@@ -47,20 +47,21 @@ class AuthApiClient {
     if response.isSuccessful {
       return try data.jsonDecoded(keyStrategy: .convertFromSnakeCase)
     } else {
-      throw try data.jsonDecoded(into: AuthApiError.self, keyStrategy: .convertFromSnakeCase)
+      throw try data.jsonDecoded(into: OAuthError.self, keyStrategy: .convertFromSnakeCase)
     }
   }
 }
 
-struct AuthApiError: Error, CustomStringConvertible, Codable {
-  let code: String
+struct OAuthError: Error, CustomStringConvertible, Codable {
+  let error: String
+  let errorDescription: String
 
   var isAuthorizationPending: Bool {
-    code == "authorization_pending"
+    error == "authorization_pending"
   }
 
   var description: String {
-    "Auth API error: \(code)"
+    "Auth API error: \(error) – \(errorDescription)"
   }
 }
 
