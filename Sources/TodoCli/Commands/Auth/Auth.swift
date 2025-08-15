@@ -58,6 +58,7 @@ struct Auth: AsyncParsableCommand {
             case .pending(let message):
               log(.loginVerificationPending)
               log(message)
+
             case .complete:
               log(.loginVerificationComplete)
             }

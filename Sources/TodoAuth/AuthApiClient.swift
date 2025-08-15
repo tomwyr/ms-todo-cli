@@ -11,13 +11,15 @@ class AuthApiClient {
   let httpClient: HttpClient
 
   func authorizeDevice() async throws -> DeviceAuthorization {
+    let scopes = "user.read openid profile offline_access tasks.readwrite"
+
     let result = try await httpClient.request(
       url: "/devicecode",
       method: "POST",
       headers: ["Content-Type": "application/x-www-form-urlencoded"],
       body: [
         "client_id": clientId,
-        "scope": "user.read%20openid%20profile%20offline_access",
+        "scope": scopes.urlQueryEncoded,
       ],
     )
 
@@ -64,6 +66,12 @@ class AuthApiClient {
     } else {
       throw try data.jsonDecoded(into: OAuthError.self, keyStrategy: .convertFromSnakeCase)
     }
+  }
+}
+
+extension String {
+  var urlQueryEncoded: String {
+    addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
   }
 }
 
