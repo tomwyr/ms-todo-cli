@@ -1,5 +1,3 @@
-import Foundation
-
 public class TodoAuth {
   init(authClient: AuthApiClient, authStorage: AuthStorage) {
     self.authClient = authClient
@@ -12,7 +10,7 @@ public class TodoAuth {
   public func authenticate(
     onVerificationStatus: sending @MainActor (AuthVerificationStatus) -> Void,
   ) async throws -> UserProfile {
-    if let session = try await restoreSession() {
+    if let session = try authStorage.loadSession() {
       return session.profile
     }
 
@@ -27,7 +25,7 @@ public class TodoAuth {
 
     let session = try UserSession(credentials: credentials)
     try authStorage.saveSession(session)
-    return try credentials.decodeUser()
+    return session.profile
   }
 
   public func invalidateSession() async throws {
@@ -35,25 +33,36 @@ public class TodoAuth {
   }
 
   public func getCurrentStatus() async throws -> AuthStatus {
-    if let session = try await restoreSession() {
+    if let session = try authStorage.loadSession() {
       .authenticated(session.profile)
     } else {
       .unauthenticated
     }
   }
 
-  private func restoreSession() async throws -> UserSession? {
-    switch try authStorage.loadSession() {
-    case nil:
-      return nil
-
-    case let session? where session.expiresAt < Date.now:
-      try authStorage.clearSession()
-      return nil
-
-    case let session:
-      return session
+  public func getAccessToken() async throws -> String {
+    guard let session = try authStorage.loadSession() else {
+      throw TodoAuthError.sessionMissing
     }
+
+    if session.isValid(refreshWindow: 30) {
+      return session.credentials.accessToken
+    }
+
+    do {
+      let refreshedSession = try await refreshSession(session)
+      return refreshedSession.credentials.accessToken
+    } catch {
+      throw TodoAuthError.sessionRefreshFailed(cause: error)
+    }
+  }
+
+  private func refreshSession(_ currentSession: UserSession) async throws -> UserSession {
+    let refreshToken = currentSession.credentials.refreshToken
+    let credentials = try await authClient.refreshCredentials(refreshToken: refreshToken)
+    let refreshedSession = try UserSession(credentials: credentials)
+    try authStorage.saveSession(refreshedSession)
+    return refreshedSession
   }
 
   private func pollToken(_ authorization: DeviceAuthorization) async throws -> AuthCredentials {
@@ -69,39 +78,17 @@ public class TodoAuth {
   }
 }
 
-extension AuthCredentials {
-  func decodeUser() throws -> UserProfile {
-    try parseJwtPayload(token: idToken, keyStrategy: .convertFromSnakeCase)
+public enum TodoAuthError: Error, CustomStringConvertible {
+  case sessionMissing
+  case sessionRefreshFailed(cause: any Error)
+
+  public var description: String {
+    switch self {
+    case .sessionMissing:
+      ""
+    case .sessionRefreshFailed:
+      ""
+    }
   }
-}
 
-public enum AuthVerificationStatus {
-  case pending(String)
-  case complete
-}
-
-public enum AuthStatus {
-  case authenticated(UserProfile)
-  case unauthenticated
-}
-
-public struct UserSession: Codable {
-  let credentials: AuthCredentials
-  let profile: UserProfile
-  let expiresAt: Date
-
-  init(credentials: AuthCredentials) throws {
-    self.credentials = credentials
-    profile = try credentials.decodeUser()
-    expiresAt = Date.now.advanced(by: .init(credentials.expiresIn))
-  }
-}
-
-public struct UserProfile: Codable {
-  public let name: String
-  public let preferredUsername: String?
-
-  public var displayName: String {
-    preferredUsername ?? name
-  }
 }

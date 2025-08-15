@@ -3,11 +3,11 @@ import Foundation
 protocol TodoCommand {
   var verbose: Bool { get }
 
-  func runDefault(body: () async throws -> Void) async throws
+  func runTodoCommand(body: () async throws -> Void) async throws
 }
 
 extension TodoCommand {
-  func runDefault(body: () async throws -> Void) async throws {
+  func runTodoCommand(body: () async throws -> Void) async throws {
     do {
       try configure()
       try await body()

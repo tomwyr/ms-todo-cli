@@ -16,7 +16,7 @@ struct Auth: AsyncParsableCommand {
 
     @MainActor
     func run() async throws {
-      try await runDefault {
+      try await runTodoCommand {
         let auth = TodoAuth()
 
         log(.checkingStatus)
@@ -41,7 +41,7 @@ struct Auth: AsyncParsableCommand {
 
     @MainActor
     func run() async throws {
-      try await runDefault {
+      try await runTodoCommand {
         let auth = TodoAuth()
 
         log(.checkingStatus)
@@ -76,7 +76,7 @@ struct Auth: AsyncParsableCommand {
 
     @MainActor
     func run() async throws {
-      try await runDefault {
+      try await runTodoCommand {
         let auth = TodoAuth()
 
         log(.checkingStatus)

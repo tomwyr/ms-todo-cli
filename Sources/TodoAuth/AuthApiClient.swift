@@ -39,6 +39,21 @@ class AuthApiClient {
     return try parseResult(result)
   }
 
+  func refreshCredentials(refreshToken: String) async throws -> AuthCredentials {
+    let result = try await httpClient.request(
+      url: "/token",
+      method: "POST",
+      headers: ["Content-Type": "application/x-www-form-urlencoded"],
+      body: [
+        "grant_type": "refresh_token",
+        "client_id": clientId,
+        "refresh_token": refreshToken,
+      ]
+    )
+
+    return try parseResult(result)
+  }
+
   private func parseResult<T>(
     _ result: (Data, HTTPURLResponse),
     into: T.Type = T.self,
@@ -49,19 +64,6 @@ class AuthApiClient {
     } else {
       throw try data.jsonDecoded(into: OAuthError.self, keyStrategy: .convertFromSnakeCase)
     }
-  }
-}
-
-struct OAuthError: Error, CustomStringConvertible, Codable {
-  let error: String
-  let errorDescription: String
-
-  var isAuthorizationPending: Bool {
-    error == "authorization_pending"
-  }
-
-  var description: String {
-    "Auth API error: \(error) – \(errorDescription)"
   }
 }
 
@@ -79,4 +81,17 @@ struct AuthCredentials: Codable {
   let idToken: String
   let accessToken: String
   let refreshToken: String
+}
+
+struct OAuthError: Error, CustomStringConvertible, Codable {
+  let error: String
+  let errorDescription: String
+
+  var isAuthorizationPending: Bool {
+    error == "authorization_pending"
+  }
+
+  var description: String {
+    "Auth API error: \(error) - \(errorDescription)"
+  }
 }
